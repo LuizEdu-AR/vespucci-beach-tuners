@@ -22,11 +22,10 @@ export const PRICE_TABLE = {
     Transmissão: [15360, 30720, 46080, 61440],
     Motor: [15360, 30720, 46080, 61440, 76800],
     Freios: [10240, 20480, 30720],
-    Hidraulico: [9000],
+    Hidraulico: [8000],
   },
   fullTuning: 221800,
   blindagem: [19200, 38400, 57600, 76800, 96000],
-  fullBlindagem: 308800,
   items: [
     { key: 'reparo_pneu', label: 'Reparo Pneu', price: 2500 },
     { key: 'reparo', label: 'Reparo', price: 4500 },
