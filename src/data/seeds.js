@@ -19,11 +19,12 @@ export const PRICE_TABLE = {
   tuning: {
     Turbo: [33600],
     Suspensão: [10240, 20480, 30720, 40960],
-    Transmissão: [15360, 30720, 46080],
-    Motor: [15360, 30720, 46080, 61440],
+    Transmissão: [15360, 30720, 46080, 61440],
+    Motor: [15360, 30720, 46080, 61440, 76800],
     Freios: [10240, 20480, 30720],
+    Hidraulico: [9000],
   },
-  fullTuning: 212800,
+  fullTuning: 221800,
   blindagem: [19200, 38400, 57600, 76800, 96000],
   fullBlindagem: 308800,
   items: [
