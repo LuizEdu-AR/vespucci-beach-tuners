@@ -1,0 +1,12 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import logo from '../../assets/vespucci-logo.png'
+import ImageUpload from '../../components/ImageUpload'
+import { useAuth } from '../../context/AuthContext'
+import { PASSWORD_RULE_TEXT, validatePassword } from '../../utils/password'
+
+export default function RegisterPage(){
+ const {register}=useAuth();const navigate=useNavigate();const [form,setForm]=useState({name:'',id:'',contactRP:'',password:'',confirm:'',photo:''});const[error,setError]=useState('');const[busy,setBusy]=useState(false)
+ const submit=async e=>{e.preventDefault();setError('');if(!validatePassword(form.password))return setError(PASSWORD_RULE_TEXT);if(form.password!==form.confirm)return setError('As senhas não coincidem.');setBusy(true);const r=await register(form);setBusy(false);if(!r.ok)return setError(r.message);navigate('/login',{state:{created:true}})}
+ return <div className="auth-page"><div className="auth-panel auth-panel-lg"><img className="auth-logo" src={logo} alt="Vespucci Beach Tuners"/><span className="eyebrow">NOVO ACESSO</span><h1>Criar cadastro</h1><p className="register-note">Novos usuários entram com cargo indefinido até que um Gerente ou cargo superior atribua uma função.</p><form onSubmit={submit}><div className="form-grid two"><div><label>Nome</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/></div><div><label>ID</label><input value={form.id} onChange={e=>setForm({...form,id:e.target.value.replace(/\s/g,'')})} required/></div><div><label>Contato (RP)</label><input value={form.contactRP} onChange={e=>setForm({...form,contactRP:e.target.value})} placeholder="Ex.: 481-378" required/></div><div></div><div><label>Senha</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} required/><small className="field-help">{PASSWORD_RULE_TEXT}</small></div><div><label>Confirmar senha</label><input type="password" value={form.confirm} onChange={e=>setForm({...form,confirm:e.target.value})} required/></div></div><ImageUpload label="Foto de perfil" value={form.photo} onChange={photo=>setForm({...form,photo})} maxMB={2.5}/>{error&&<div className="alert error">{error}</div>}<button className="button primary wide" disabled={busy}>{busy?'Criando cadastro...':'Finalizar cadastro'}</button></form><p className="auth-link">Já possui cadastro? <Link to="/login">Voltar ao login</Link></p></div></div>
+}

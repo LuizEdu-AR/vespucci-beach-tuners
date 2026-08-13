@@ -1,0 +1,13 @@
+import { useState } from 'react'
+import { Save } from 'lucide-react'
+import ImageUpload from '../../components/ImageUpload'
+import RoleBadge from '../../components/RoleBadge'
+import { useAuth } from '../../context/AuthContext'
+import { useUI } from '../../context/UIContext'
+import { PASSWORD_RULE_TEXT, validatePassword } from '../../utils/password'
+
+export default function ProfilePage(){
+ const{user,updateProfile}=useAuth();const{toast}=useUI();const[form,setForm]=useState({name:user.name,photo:user.photo||'',contactRP:user.contactRP||'',password:'',confirm:''});const[error,setError]=useState('');const[busy,setBusy]=useState(false)
+ const save=async e=>{e.preventDefault();setError('');if(form.password&&!validatePassword(form.password))return setError(PASSWORD_RULE_TEXT);if(form.password&&form.password!==form.confirm)return setError('As senhas não coincidem.');setBusy(true);const result=await updateProfile({name:form.name,photo:form.photo,contactRP:form.contactRP,password:form.password||undefined});setBusy(false);if(!result.ok)return setError(result.message);setForm({...form,password:'',confirm:''});toast('Perfil atualizado com sucesso.','success')}
+ return <><div className="page-heading"><div><span className="eyebrow">CONTA</span><h1>Meu perfil</h1><p>Atualize nome, foto, contato RP e senha de acesso.</p></div></div><form className="card profile-card" onSubmit={save}><div className="profile-summary"><div className="avatar profile-avatar">{form.photo?<img src={form.photo} alt=""/>:form.name.charAt(0)}</div><div><h3>{user.name}</h3><span>ID #{user.id}</span><RoleBadge role={user.role}/></div></div><ImageUpload label="Foto de perfil" value={form.photo} onChange={photo=>setForm({...form,photo})} maxMB={2.5}/><div className="form-grid two top-gap"><div><label>Nome</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/></div><div><label>ID</label><input value={user.id} disabled/></div><div><label>Contato (RP)</label><input value={form.contactRP} onChange={e=>setForm({...form,contactRP:e.target.value})} placeholder="Seu contato dentro do RP"/></div><div></div><div><label>Nova senha</label><input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Deixe em branco para manter"/><small className="field-help">{PASSWORD_RULE_TEXT}</small></div><div><label>Confirmar nova senha</label><input type="password" value={form.confirm} onChange={e=>setForm({...form,confirm:e.target.value})}/></div></div>{error&&<div className="alert error top-gap">{error}</div>}<button className="button primary top-gap" disabled={busy}><Save size={17}/> {busy?'Salvando...':'Salvar alterações'}</button></form></>
+}

@@ -1,0 +1,102 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function loggedIn() {
+      return request.auth != null;
+    }
+
+    function myUser() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function myRole() {
+      return myUser().data.role;
+    }
+
+    function roleRank(value) {
+      return value == 'Dev' ? 9 :
+             value == 'Dono' ? 8 :
+             value == 'Diretor' ? 7 :
+             value == 'Gerente' ? 6 :
+             value == 'Supervisor' ? 5 :
+             value == 'Mecânico Sênior' ? 4 :
+             value == 'Mecânico' ? 3 :
+             value == 'Estagiário' ? 2 :
+             value == 'Jovem Aprendiz' ? 1 : 0;
+    }
+
+    function isStaff() {
+      return loggedIn() && roleRank(myRole()) >= 1;
+    }
+
+    function managerOrAbove() {
+      return loggedIn() && roleRank(myRole()) >= 6;
+    }
+
+    function directorOrAbove() {
+      return loggedIn() && roleRank(myRole()) >= 7;
+    }
+
+    function canManageCurrentTarget() {
+      return managerOrAbove() &&
+        (myRole() == 'Dev' || roleRank(myRole()) > roleRank(resource.data.role));
+    }
+
+    function canAssignRole(newRole) {
+      return myRole() == 'Dev' || roleRank(newRole) < roleRank(myRole());
+    }
+
+    match /users/{userId} {
+      allow read: if loggedIn();
+
+      allow create: if loggedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'Cargo indefinido'
+        && request.resource.data.active == true
+        && request.auth.token.email == request.resource.data.rpId + '@vespucci.local';
+
+      allow update: if loggedIn() && (
+        (
+          request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'contactRP', 'photoURL'])
+        )
+        ||
+        (
+          request.auth.uid != userId
+          && canManageCurrentTarget()
+          && canAssignRole(request.resource.data.role)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+        )
+      );
+
+      allow delete: if false;
+    }
+
+    match /clients/{clientId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.clientId == clientId
+        && request.resource.data.createdBy.uid == request.auth.uid;
+      allow update, delete: if managerOrAbove();
+    }
+
+    match /services/{serviceId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.mechanic.uid == request.auth.uid;
+      allow update, delete: if managerOrAbove();
+    }
+
+    match /prices/{priceId} {
+      allow read: if loggedIn();
+      allow create, update, delete: if directorOrAbove();
+    }
+
+    match /notices/{noticeId} {
+      allow read: if isStaff();
+      allow create, update, delete: if managerOrAbove();
+    }
+  }
+}

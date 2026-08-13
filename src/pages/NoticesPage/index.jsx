@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react'
+import { Megaphone, Send, Trash2 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
+import { useUI } from '../../context/UIContext'
+import { createNotice, deleteNotice, subscribeNotices } from '../../services/firestore'
+
+export default function NoticesPage(){
+ const{user,canPublishNotice}=useAuth();const{toast,confirm}=useUI();const[notices,setNotices]=useState([]);const[text,setText]=useState('');const[title,setTitle]=useState('');const[busy,setBusy]=useState(false)
+ useEffect(()=>subscribeNotices(setNotices,(error)=>{console.error(error);toast('Não foi possível carregar os avisos.','error')}),[toast])
+ const publish=async e=>{e.preventDefault();if(!title.trim()||!text.trim())return toast('Preencha o título e a mensagem do aviso.','warning');try{setBusy(true);await createNotice({title:title.trim(),text:text.trim(),author:{uid:user.uid,id:user.id,name:user.name}});setText('');setTitle('');toast('Aviso publicado.','success')}catch(error){console.error(error);toast('Não foi possível publicar o aviso.','error')}finally{setBusy(false)}}
+ const remove=async id=>{const ok=await confirm({title:'Excluir aviso',message:'O aviso deixará de aparecer para toda a equipe.',danger:true,confirmLabel:'Excluir'});if(!ok)return;try{await deleteNotice(id);toast('Aviso removido.','success')}catch(error){console.error(error);toast('Não foi possível remover o aviso.','error')}}
+ return <><div className="page-heading"><div><span className="eyebrow">COMUNICAÇÃO</span><h1>Quadro de avisos</h1><p>Todos visualizam. Apenas Gerente e cargos superiores podem publicar.</p></div></div>{canPublishNotice&&<form className="card notice-form" onSubmit={publish}><h3><Megaphone size={19}/> Novo aviso</h3><label>Título</label><input value={title} onChange={e=>setTitle(e.target.value)} maxLength={80}/><label>Mensagem</label><textarea value={text} onChange={e=>setText(e.target.value)} rows={4} maxLength={600}/><button className="button primary" disabled={busy}><Send size={17}/> {busy?'Publicando...':'Publicar aviso'}</button></form>}<div className="notice-list top-gap">{notices.length===0?<div className="card empty-state large">Nenhum aviso publicado.</div>:notices.map(n=><article className="card notice" key={n.id}><div><span className="record-code">{n.createdAt?new Date(n.createdAt).toLocaleString('pt-BR'):'Agora'}</span><h3>{n.title}</h3><p>{n.text}</p><small>Publicado por {n.author?.name} · ID {n.author?.id}</small></div>{canPublishNotice&&<button className="icon-button danger" onClick={()=>remove(n.id)}><Trash2 size={17}/></button>}</article>)}</div></>
+}
