@@ -4,6 +4,7 @@ import { ROLE_GROUPS, ROLE_ORDER, ROLE_RANK, UNDEFINED_ROLE } from '../../data/s
 import { useAuth } from '../../context/AuthContext'
 import { useUI } from '../../context/UIContext'
 import { subscribeUsers, updateUserRole } from '../../services/firestore'
+import { fireUser } from '../../services/adminApi'
 import RoleBadge from '../../components/RoleBadge'
 
 export default function HierarchyPage(){
@@ -33,12 +34,12 @@ export default function HierarchyPage(){
   const fire=async(person)=>{
     if(person.id===user.uid)return toast('Você não pode demitir o próprio usuário.','warning')
     if(!canManageRole(person.role))return
-    const ok=await confirm({title:'Demitir funcionário',message:`O cadastro de ${person.name} será mantido, mas o cargo passará para "${UNDEFINED_ROLE}" e ele deixará de aparecer na hierarquia.`,danger:true,confirmLabel:'Demitir'})
+    const ok=await confirm({title:'Demitir funcionário',message:`A conta de ${person.name} será excluída e perderá o acesso imediatamente. O histórico de serviços será preservado. Se for readmitido no futuro, precisará se cadastrar novamente.`,danger:true,confirmLabel:'Demitir'})
     if(!ok)return
     try{
-      await updateUserRole(person.id,UNDEFINED_ROLE)
+      await fireUser(person.id)
       setEditing(null)
-      toast(`${person.name} foi removido da equipe ativa. O cadastro foi preservado.`,'success')
+      toast(`${person.name} foi demitido. A conta foi excluída e o histórico de serviços foi preservado.`,'success')
     }catch(error){console.error(error);toast('Não foi possível concluir a demissão.','error')}
   }
 
