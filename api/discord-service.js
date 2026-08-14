@@ -83,6 +83,7 @@ export default async function handler(req, res) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: 'Vespucci Beach Tuners',
+        avatar_url: process.env.DISCORD_BOT_AVATAR_URL,
         allowed_mentions: { parse: [] },
         embeds,
       }),
