@@ -50,7 +50,6 @@ export default function CalculatorPage() {
   const finish = async () => {
     if (!clientId.trim()) return toast('Informe o ID do cliente.', 'warning')
     if (!client) return toast('Cadastre este cliente antes de finalizar o serviço.', 'warning')
-    if (!vtuning) return toast('Anexe a imagem do V-Tuning.', 'warning')
     if (!breakdown.rows.length) return toast('Selecione ao menos um serviço.', 'warning')
     try {
       setFinishing(true)
@@ -86,7 +85,7 @@ export default function CalculatorPage() {
         <div><label>Mecânico responsável</label><input value={`${user.name} · ID ${user.id}`} disabled /></div>
       </div>
         {showClientForm && !client && <div className="client-inline-form"><div><label>Nome do novo cliente</label><input value={newClientName} onChange={e => setNewClientName(e.target.value)} placeholder="Nome completo do cliente" autoFocus /></div><button type="button" className="button primary" onClick={registerClient} disabled={registeringClient}><Plus size={17} /> {registeringClient ? 'Salvando...' : 'Salvar cliente'}</button><button type="button" className="button ghost" onClick={() => { setShowClientForm(false); setNewClientName('') }}>Cancelar</button></div>}
-        <div className="form-grid two top-gap"><ImageUpload label="Imagem do V-Tuning" required value={vtuning} onChange={setVtuning} maxMB={5} /><ImageUpload label="Foto do veículo (opcional)" value={vehicle} onChange={setVehicle} maxMB={5} /></div></div>
+        <div className="form-grid two top-gap"><ImageUpload label="Imagem do V-Tuning (opcional)" value={vtuning} onChange={setVtuning} maxMB={5} /><ImageUpload label="Foto do veículo (opcional)" value={vehicle} onChange={setVehicle} maxMB={5} /></div></div>
       <div className="card"><div className="section-head"><h3>Tuning</h3><button className="button small" onClick={applyFullTuning}>Aplicar Full Tuning · $ {money(prices.fullTuning)}</button></div><div className="option-list">{Object.entries(prices.tuning || {}).map(([name, levels]) => <div className="option-row" key={name}><div><strong>{name}</strong><span>{levels.map((v, i) => `N${i + 1}: $ ${money(v)}`).join(' · ')}</span></div><select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}><option value="">Não aplicar</option>{levels.map((v, i) => <option key={`${name}-${i}`} value={i + 1}>Nível {i + 1} — $ {money(v)}</option>)}</select></div>)}</div></div>
       <div className="card"><h3>Estética</h3><div className="option-list">{(prices.aesthetics || []).map(i => <div className="option-row" key={i.key}><div><strong>{i.label}</strong><span>$ {money(i.price)}</span></div>{qtyField('aesthetics', i.key)}</div>)}</div></div>
       <div className="card"><h3>Blindagem</h3><div className="option-row"><div><strong>Nível de blindagem</strong></div><select value={sel.blindagem} onChange={e => setSel({ ...sel, blindagem: e.target.value })}><option value="">Não aplicar</option>{(prices.blindagem || []).map((v, i) => <option key={`blind-${i}`} value={String(i + 1)}>Nível {i + 1} — $ {money(v)}</option>)}</select></div></div>
