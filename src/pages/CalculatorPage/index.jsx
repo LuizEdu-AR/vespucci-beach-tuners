@@ -5,6 +5,7 @@ import { PRICE_TABLE } from '../../data/seeds'
 import { useAuth } from '../../context/AuthContext'
 import { useUI } from '../../context/UIContext'
 import { createClient, createService, getClientById, subscribePriceTable } from '../../services/firestore'
+import { sendServiceToDiscord } from '../../services/discordApi'
 
 const money = (v) => Number(v || 0).toLocaleString('pt-BR')
 const emptySelections = () => ({ tuning: {}, fullTuning: false, blindagem: '', items: {}, aesthetics: {}, guinchoKm: 0, dmv: 'none', dmvMaterials: 0 })
@@ -51,7 +52,24 @@ export default function CalculatorPage() {
     if (!client) return toast('Cadastre este cliente antes de finalizar o serviço.', 'warning')
     if (!vtuning) return toast('Anexe a imagem do V-Tuning.', 'warning')
     if (!breakdown.rows.length) return toast('Selecione ao menos um serviço.', 'warning')
-    try { setFinishing(true); await createService({ clientId: client.id, clientName: client.name, mechanic: { uid: user.uid, id: user.id, name: user.name, role: user.role }, vtuningImage: vtuning, vehicleImage: vehicle || '', modifications: breakdown.rows, total: breakdown.total }); toast('Serviço finalizado e salvo no histórico compartilhado.', 'success'); clear() } catch (error) { console.error(error); toast('Não foi possível finalizar o serviço.', 'error') } finally { setFinishing(false) }
+    try {
+      setFinishing(true)
+      const serviceData = { clientId: client.id, clientName: client.name, mechanic: { uid: user.uid, id: user.id, name: user.name, role: user.role }, vtuningImage: vtuning, vehicleImage: vehicle || '', modifications: breakdown.rows, total: breakdown.total }
+      const serviceId = await createService(serviceData)
+      try {
+        await sendServiceToDiscord({ ...serviceData, serviceId })
+        toast('Serviço finalizado, salvo no histórico e enviado ao Discord.', 'success')
+      } catch (discordError) {
+        console.error('Serviço salvo, mas o envio ao Discord falhou:', discordError)
+        toast('Serviço salvo no histórico, mas não foi possível enviar ao Discord.', 'warning')
+      }
+      clear()
+    } catch (error) {
+      console.error(error)
+      toast('Não foi possível finalizar o serviço.', 'error')
+    } finally {
+      setFinishing(false)
+    }
   }
   const qtyField = (group, key, max) => <input className="qty" type="number" min="0" max={max || 99} value={sel[group][key] || 0} onChange={e => setSel(s => ({ ...s, [group]: { ...s[group], [key]: Math.max(0, Number(e.target.value)) } }))} />
 
