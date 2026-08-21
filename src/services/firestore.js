@@ -4,10 +4,14 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { PRICE_TABLE } from '../data/seeds'
@@ -37,6 +41,45 @@ export async function createClient({ id, name, createdBy }) {
     createdBy,
     createdAt: serverTimestamp(),
   })
+}
+
+export async function updateClient({ oldId, id, name }) {
+  const previousId = String(oldId).trim()
+  const nextId = String(id).trim()
+  const nextName = String(name).trim()
+
+  if (!previousId || !nextId || !nextName) throw new Error('Nome e ID são obrigatórios.')
+
+  const oldRef = doc(db, 'clients', previousId)
+  const oldSnap = await getDoc(oldRef)
+  if (!oldSnap.exists()) throw new Error('Cliente não encontrado.')
+
+  if (nextId !== previousId) {
+    const newRef = doc(db, 'clients', nextId)
+    const newSnap = await getDoc(newRef)
+    if (newSnap.exists()) throw new Error('Já existe um cliente com este ID.')
+  }
+
+  const serviceSnap = await getDocs(query(collection(db, 'services'), where('clientId', '==', previousId)))
+  const batch = writeBatch(db)
+
+  if (nextId === previousId) {
+    batch.update(oldRef, { clientId: nextId, name: nextName })
+  } else {
+    batch.set(doc(db, 'clients', nextId), {
+      ...oldSnap.data(),
+      clientId: nextId,
+      name: nextName,
+      updatedAt: serverTimestamp(),
+    })
+    batch.delete(oldRef)
+  }
+
+  serviceSnap.docs.forEach((serviceDoc) => {
+    batch.update(serviceDoc.ref, { clientId: nextId, clientName: nextName })
+  })
+
+  await batch.commit()
 }
 
 export function subscribeClients(callback, onError) {
