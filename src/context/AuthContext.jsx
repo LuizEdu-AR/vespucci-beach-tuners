@@ -19,6 +19,7 @@ function profileToUser(uid, data) {
     id: String(data.rpId || ''),
     name: data.name || 'Usuário',
     role: data.role || UNDEFINED_ROLE,
+    secondaryRole: data.secondaryRole || '',
     photo: data.photoURL || '',
     contactRP: data.contactRP || '',
     active: data.active !== false,
@@ -119,7 +120,12 @@ export function AuthProvider({ children }) {
       if (changes.contactRP !== undefined) profileChanges.contactRP = changes.contactRP.trim()
       if (changes.password) await updatePassword(auth.currentUser, changes.password)
       if (Object.keys(profileChanges).length) await updateDoc(doc(db, 'users', user.uid), profileChanges)
-      const updated = { ...user, name: profileChanges.name ?? user.name, photo: profileChanges.photoURL ?? user.photo, contactRP: profileChanges.contactRP ?? user.contactRP }
+      const updated = {
+        ...user,
+        name: profileChanges.name ?? user.name,
+        photo: profileChanges.photoURL ?? user.photo,
+        contactRP: profileChanges.contactRP ?? user.contactRP,
+      }
       setUser(updated)
       return { ok: true }
     } catch (error) {

@@ -22,7 +22,7 @@ const money = (value) => Number(value || 0).toLocaleString('pt-BR')
 
 export default function ClientsPage() {
   const { toast } = useUI()
-  const { isManagerOrAbove } = useAuth()
+  const { isManagerOrAbove, user } = useAuth()
 
   const [clients, setClients] = useState([])
   const [history, setHistory] = useState([])
@@ -105,6 +105,13 @@ export default function ClientsPage() {
       .toLowerCase()
       .includes(q.toLowerCase())
   )
+
+  const shownRole = (record) => {
+    if (record.mechanic?.uid === user.uid) {
+      return user.secondaryRole || record.mechanic?.role
+    }
+    return record.mechanic?.role
+  }
 
   const startEdit = (client, event) => {
     event?.stopPropagation()
@@ -306,7 +313,7 @@ export default function ClientsPage() {
 
                             <span>
                               <Wrench size={15} />
-                              {record.mechanic?.role}
+                              {shownRole(record)}
                             </span>
                           </div>
 

@@ -9,6 +9,7 @@ import { sendServiceToDiscord } from '../../services/discordApi'
 
 const money = (v) => Number(v || 0).toLocaleString('pt-BR')
 const emptySelections = () => ({ tuning: {}, fullTuning: false, blindagem: '', items: {}, aesthetics: {}, guinchoKm: 0, dmv: 'none', dmvMaterials: 0 })
+const TUNING_ORDER = ['Motor', 'Freios', 'Transmissão', 'Suspensão', 'Hidráulico', 'Turbo']
 
 export default function CalculatorPage() {
   const { user } = useAuth(); const { toast } = useUI()
@@ -26,10 +27,31 @@ export default function CalculatorPage() {
     return () => clearTimeout(timer)
   }, [clientId, toast])
 
+  const orderedTuningEntries = useMemo(() => {
+    const tuning = prices.tuning || {}
+    const known = TUNING_ORDER
+      .filter((name) => Object.prototype.hasOwnProperty.call(tuning, name))
+      .map((name) => [name, tuning[name]])
+
+    const extra = Object.entries(tuning)
+      .filter(([name]) => !TUNING_ORDER.includes(name))
+
+    return [...known, ...extra]
+  }, [prices])
+
   const breakdown = useMemo(() => {
     const rows = []; let total = 0
     if (sel.fullTuning) { const price = Number(prices.fullTuning || 0); rows.push({ label: 'Full Tuning', price }); total += price }
-    else Object.entries(sel.tuning).forEach(([name, level]) => { if (level) { const price = prices.tuning?.[name]?.[Number(level) - 1]; if (price) { rows.push({ label: `${name} · nível ${level}`, price }); total += price } } })
+    else orderedTuningEntries.forEach(([name]) => {
+      const level = sel.tuning[name]
+      if (level) {
+        const price = prices.tuning?.[name]?.[Number(level) - 1]
+        if (price) {
+          rows.push({ label: `${name} · nível ${level}`, price })
+          total += price
+        }
+      }
+    })
     if (sel.blindagem === 'full') { const price = Number(prices.fullBlindagem || 0); rows.push({ label: 'Full Blindagem', price }); total += price }
     else if (sel.blindagem) { const price = prices.blindagem?.[Number(sel.blindagem) - 1] || 0; if (price) { rows.push({ label: `Blindagem · nível ${sel.blindagem}`, price }); total += price } }
     ;(prices.items || []).forEach(i => { const qty = Number(sel.items[i.key] || 0); if (qty) { rows.push({ label: `${i.label} × ${qty}`, price: i.price * qty }); total += i.price * qty } })
@@ -37,7 +59,7 @@ export default function CalculatorPage() {
     if (sel.guinchoKm > 0) { const price = Number(prices.towing?.base || 0) + Math.ceil(sel.guinchoKm / 2) * Number(prices.towing?.per2Km || 0); rows.push({ label: `Guincho · ${sel.guinchoKm} km`, price }); total += price }
     if (sel.dmv !== 'none') { const dmv = (prices.dmv || []).find(d => String(d.key) === String(sel.dmv)); if (dmv) { const materials = dmv.materials ? Number(sel.dmvMaterials || 0) : 0; rows.push({ label: `${dmv.label}${materials ? ' + materiais' : ''}`, price: Number(dmv.price || 0) + materials }); total += Number(dmv.price || 0) + materials } }
     return { rows, total }
-  }, [sel, prices])
+  }, [sel, prices, orderedTuningEntries])
 
   const registerClient = async () => {
     const cleanId = clientId.trim(); const cleanName = newClientName.trim()
@@ -46,16 +68,41 @@ export default function CalculatorPage() {
     if (/\d/.test(cleanName)) return toast('O nome do cliente não pode conter números.', 'warning')
     try { setRegisteringClient(true); await createClient({ id: cleanId, name: cleanName, createdBy: { uid: user.uid, id: user.id, name: user.name } }); const created = { id: cleanId, clientId: cleanId, name: cleanName }; setClient(created); setShowClientForm(false); setNewClientName(''); toast(`${cleanName} foi cadastrado e vinculado ao ID ${cleanId}.`, 'success') } catch (error) { console.error(error); toast('Não foi possível cadastrar o cliente.', 'error') } finally { setRegisteringClient(false) }
   }
-  const applyFullTuning = () => { const tuning = {}; Object.entries(prices.tuning || {}).forEach(([name, levels]) => { if (levels.length) tuning[name] = levels.length }); setSel(s => ({ ...s, tuning, fullTuning: true })) }
+
+  const applyFullTuning = () => {
+    const tuning = {}
+    orderedTuningEntries.forEach(([name, levels]) => {
+      if (levels.length) tuning[name] = levels.length
+    })
+    setSel(s => ({ ...s, tuning, fullTuning: true }))
+  }
+
   const clear = () => { setSel(emptySelections()); setClientId(''); setClient(null); setNewClientName(''); setShowClientForm(false); setVtuning(''); setVehicle('') }
+
   const finish = async () => {
     if (!clientId.trim()) return toast('Informe o ID do cliente.', 'warning')
     if (!client) return toast('Cadastre este cliente antes de finalizar o serviço.', 'warning')
     if (!breakdown.rows.length) return toast('Selecione ao menos um serviço.', 'warning')
+
     try {
       setFinishing(true)
-      const serviceData = { clientId: client.id, clientName: client.name, mechanic: { uid: user.uid, id: user.id, name: user.name, role: user.role }, vtuningImage: vtuning, vehicleImage: vehicle || '', modifications: breakdown.rows, total: breakdown.total }
+      const serviceData = {
+        clientId: client.id,
+        clientName: client.name,
+        mechanic: {
+          uid: user.uid,
+          id: user.id,
+          name: user.name,
+          role: user.secondaryRole || user.role,
+        },
+        vtuningImage: vtuning,
+        vehicleImage: vehicle || '',
+        modifications: breakdown.rows,
+        total: breakdown.total,
+      }
+
       const serviceId = await createService(serviceData)
+
       try {
         await sendServiceToDiscord({ ...serviceData, serviceId })
         toast('Serviço finalizado, salvo no histórico e enviado ao Discord.', 'success')
@@ -63,6 +110,7 @@ export default function CalculatorPage() {
         console.error('Serviço salvo, mas o envio ao Discord falhou:', discordError)
         toast('Serviço salvo no histórico, mas não foi possível enviar ao Discord.', 'warning')
       }
+
       clear()
     } catch (error) {
       console.error(error)
@@ -71,6 +119,7 @@ export default function CalculatorPage() {
       setFinishing(false)
     }
   }
+
   const qtyField = (group, key, max) => <input className="qty" type="number" min="0" max={max || 99} value={sel[group][key] || 0} onChange={e => setSel(s => ({ ...s, [group]: { ...s[group], [key]: Math.max(0, Number(e.target.value)) } }))} />
 
   return <>
@@ -87,7 +136,28 @@ export default function CalculatorPage() {
       </div>
         {showClientForm && !client && <div className="client-inline-form"><div><label>Nome do novo cliente</label><input value={newClientName} onChange={e => setNewClientName(e.target.value.replace(/[0-9]/g, ''))} placeholder="Nome completo do cliente" autoFocus /></div><button type="button" className="button primary" onClick={registerClient} disabled={registeringClient}><Plus size={17} /> {registeringClient ? 'Salvando...' : 'Salvar cliente'}</button><button type="button" className="button ghost" onClick={() => { setShowClientForm(false); setNewClientName('') }}>Cancelar</button></div>}
         <div className="form-grid two top-gap"><ImageUpload label="Imagem do V-Tuning (opcional)" value={vtuning} onChange={setVtuning} maxMB={5} /><ImageUpload label="Foto do veículo (opcional)" value={vehicle} onChange={setVehicle} maxMB={5} /></div></div>
-      <div className="card"><div className="section-head"><h3>Tuning</h3><button className="button small" onClick={applyFullTuning}>Aplicar Full Tuning · $ {money(prices.fullTuning)}</button></div><div className="option-list">{Object.entries(prices.tuning || {}).map(([name, levels]) => <div className="option-row" key={name}><div><strong>{name}</strong><span>{levels.map((v, i) => `N${i + 1}: $ ${money(v)}`).join(' · ')}</span></div><select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}><option value="">Não aplicar</option>{levels.map((v, i) => <option key={`${name}-${i}`} value={i + 1}>Nível {i + 1} — $ {money(v)}</option>)}</select></div>)}</div></div>
+
+      <div className="card">
+        <div className="section-head">
+          <h3>Tuning</h3>
+          <button className="button small" onClick={applyFullTuning}>Aplicar Full Tuning · $ {money(prices.fullTuning)}</button>
+        </div>
+        <div className="option-list">
+          {orderedTuningEntries.map(([name, levels]) => (
+            <div className="option-row" key={name}>
+              <div>
+                <strong>{name}</strong>
+                <span>{levels.map((v, i) => `N${i + 1}: $ ${money(v)}`).join(' · ')}</span>
+              </div>
+              <select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}>
+                <option value="">Não aplicar</option>
+                {levels.map((v, i) => <option key={`${name}-${i}`} value={i + 1}>Nível {i + 1} — $ {money(v)}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="card"><h3>Estética</h3><div className="option-list">{(prices.aesthetics || []).map(i => <div className="option-row" key={i.key}><div><strong>{i.label}</strong><span>$ {money(i.price)}</span></div>{qtyField('aesthetics', i.key)}</div>)}</div></div>
       <div className="card"><h3>Blindagem</h3><div className="option-row"><div><strong>Nível de blindagem</strong></div><select value={sel.blindagem} onChange={e => setSel({ ...sel, blindagem: e.target.value })}><option value="">Não aplicar</option>{(prices.blindagem || []).map((v, i) => <option key={`blind-${i}`} value={String(i + 1)}>Nível {i + 1} — $ {money(v)}</option>)}</select></div></div>
       <div className="card"><h3>Itens e serviços</h3><div className="option-list">{(prices.items || []).map(i => <div className="option-row" key={i.key}><div><strong>{i.label}</strong><span>$ {money(i.price)}{i.max ? ` · máximo ${i.max}` : ''}{i.durability ? ` · durabilidade ${i.durability}` : ''}</span></div>{qtyField('items', i.key, i.max)}</div>)}<div className="option-row"><div><strong>Guincho</strong><span>$ {money(prices.towing?.base)} + $ {money(prices.towing?.per2Km)} a cada 2 km</span></div><input className="qty wide-qty" type="number" min="0" value={sel.guinchoKm} onChange={e => setSel({ ...sel, guinchoKm: Number(e.target.value) })} placeholder="km" /></div><div className="option-row"><div><strong>DMV</strong><span>Escolha uma modalidade cadastrada na tabela</span></div><div className="inline-fields"><select value={sel.dmv} onChange={e => setSel({ ...sel, dmv: e.target.value, dmvMaterials: 0 })}><option value="none">Não aplicar</option>{(prices.dmv || []).map(d => <option key={d.key} value={d.key}>{d.label} — $ {money(d.price)}{d.materials ? ' + materiais' : ''}</option>)}</select>{(prices.dmv || []).find(d => String(d.key) === String(sel.dmv))?.materials && <input className="qty wide-qty" type="number" min="0" value={sel.dmvMaterials} onChange={e => setSel({ ...sel, dmvMaterials: Number(e.target.value) })} placeholder="$ materiais" />}</div></div></div></div>
