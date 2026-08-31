@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       color: 0x00bde7,
       fields: [
         { name: '👤 Cliente', value: `${safeText(clientName)} — ID ${safeText(clientId)}`, inline: false },
-        { name: '🔩 Mecânico', value: `${safeText(profile.name)} — ID ${safeText(profile.rpId)} · ${safeText(profile.role)}`, inline: false },
+        { name: '🔩 Mecânico', value: `${safeText(profile.name)} — ID ${safeText(profile.rpId)} · ${safeText(profile.secondaryRole || profile.role)}`, inline: false },
         { name: '🛠️ Modificações', value: modificationsText || 'Nenhuma modificação informada.', inline: false },
         { name: '💰 Valor total', value: `$ ${money(total)}`, inline: false },
       ],
