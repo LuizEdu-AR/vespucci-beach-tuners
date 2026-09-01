@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Search, Trash2, UserRound, Wrench } from 'lucide-react'
+import { CalendarDays, ChevronLeft, ChevronRight, Search, Trash2, UserRound, Wrench } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useUI } from '../../context/UIContext'
 import { ROLE_RANK } from '../../data/seeds'
@@ -169,6 +169,29 @@ export default function HistoryPage() {
           background: 'rgba(7, 16, 22, 0.7)',
         }}
       >
+        <button
+          type="button"
+          onClick={() => setPage((current) => Math.max(1, current - 1))}
+          disabled={page === 1}
+          style={{
+            height: 36,
+            padding: '0 12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 9,
+            border: '1px solid #17232d',
+            background: '#081117',
+            color: page === 1 ? '#43535c' : '#c7d4da',
+            fontWeight: 700,
+            cursor: page === 1 ? 'not-allowed' : 'pointer',
+            opacity: page === 1 ? 0.55 : 1,
+          }}
+        >
+          <ChevronLeft size={16} />
+          Anterior
+        </button>
+
         {firstPages.map((pageNumber) => (
           <button
             key={pageNumber}
@@ -189,6 +212,27 @@ export default function HistoryPage() {
             {pageNumber}
           </button>
         ))}
+
+        {page > 3 && page < totalPages && (
+          <button
+            type="button"
+            aria-current="page"
+            title={`Página atual: ${page}`}
+            style={{
+              minWidth: 38,
+              height: 36,
+              padding: '0 11px',
+              borderRadius: 9,
+              border: '1px solid #0A93B8',
+              background: 'rgba(10, 147, 184, 0.18)',
+              color: '#20c8f2',
+              fontWeight: 700,
+              cursor: 'default',
+            }}
+          >
+            {page}
+          </button>
+        )}
 
         {totalPages > 3 && (
           <>
@@ -240,6 +284,29 @@ export default function HistoryPage() {
             </button>
           </>
         )}
+
+        <button
+          type="button"
+          onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+          disabled={page === totalPages}
+          style={{
+            height: 36,
+            padding: '0 12px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            borderRadius: 9,
+            border: '1px solid #17232d',
+            background: '#081117',
+            color: page === totalPages ? '#43535c' : '#c7d4da',
+            fontWeight: 700,
+            cursor: page === totalPages ? 'not-allowed' : 'pointer',
+            opacity: page === totalPages ? 0.55 : 1,
+          }}
+        >
+          Próximo
+          <ChevronRight size={16} />
+        </button>
 
         <span
           style={{
