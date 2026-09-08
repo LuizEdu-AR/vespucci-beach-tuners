@@ -16,7 +16,9 @@ export default function CalculatorPage() {
   const [prices, setPrices] = useState(PRICE_TABLE)
   const [clientId, setClientId] = useState(''); const [client, setClient] = useState(null); const [searchingClient, setSearchingClient] = useState(false)
   const [newClientName, setNewClientName] = useState(''); const [showClientForm, setShowClientForm] = useState(false); const [registeringClient, setRegisteringClient] = useState(false)
-  const [vtuning, setVtuning] = useState(''); const [vehicle, setVehicle] = useState(''); const [sel, setSel] = useState(emptySelections()); const [finishing, setFinishing] = useState(false)
+  const [vtuning, setVtuning] = useState(''); const [vehicle, setVehicle] = useState('')
+  const [vtuningAsset, setVtuningAsset] = useState(null); const [vehicleAsset, setVehicleAsset] = useState(null)
+  const [sel, setSel] = useState(emptySelections()); const [finishing, setFinishing] = useState(false)
 
   useEffect(() => subscribePriceTable(setPrices, (error) => { console.error(error); toast('Não foi possível sincronizar a tabela de preços.', 'error') }), [toast])
   useEffect(() => {
@@ -77,7 +79,7 @@ export default function CalculatorPage() {
     setSel(s => ({ ...s, tuning, fullTuning: true }))
   }
 
-  const clear = () => { setSel(emptySelections()); setClientId(''); setClient(null); setNewClientName(''); setShowClientForm(false); setVtuning(''); setVehicle('') }
+  const clear = () => { setSel(emptySelections()); setClientId(''); setClient(null); setNewClientName(''); setShowClientForm(false); setVtuning(''); setVehicle(''); setVtuningAsset(null); setVehicleAsset(null) }
 
   const finish = async () => {
     if (!clientId.trim()) return toast('Informe o ID do cliente.', 'warning')
@@ -96,7 +98,11 @@ export default function CalculatorPage() {
           role: user.secondaryRole || user.role,
         },
         vtuningImage: vtuning,
+        vtuningPublicId: vtuningAsset?.publicId || '',
+        vtuningAssetId: vtuningAsset?.assetId || '',
         vehicleImage: vehicle || '',
+        vehiclePublicId: vehicleAsset?.publicId || '',
+        vehicleAssetId: vehicleAsset?.assetId || '',
         modifications: breakdown.rows,
         total: breakdown.total,
       }
@@ -135,7 +141,30 @@ export default function CalculatorPage() {
         <div><label>Mecânico responsável</label><input value={`${user.name} · ID ${user.id}`} disabled /></div>
       </div>
         {showClientForm && !client && <div className="client-inline-form"><div><label>Nome do novo cliente</label><input value={newClientName} onChange={e => setNewClientName(e.target.value.replace(/[0-9]/g, ''))} placeholder="Nome completo do cliente" autoFocus /></div><button type="button" className="button primary" onClick={registerClient} disabled={registeringClient}><Plus size={17} /> {registeringClient ? 'Salvando...' : 'Salvar cliente'}</button><button type="button" className="button ghost" onClick={() => { setShowClientForm(false); setNewClientName('') }}>Cancelar</button></div>}
-        <div className="form-grid two top-gap"><ImageUpload label="Imagem do V-Tuning (opcional)" value={vtuning} onChange={setVtuning} maxMB={5} /><ImageUpload label="Foto do veículo (opcional)" value={vehicle} onChange={setVehicle} maxMB={5} /></div></div>
+        <div className="form-grid two top-gap">
+          <ImageUpload
+            label="Imagem do V-Tuning (opcional)"
+            value={vtuning}
+            onChange={(url, asset) => {
+              setVtuning(url)
+              setVtuningAsset(asset)
+            }}
+            maxMB={5}
+            folder="vespucci/services/vtuning"
+            tags={['vespucci-service', 'vespucci-vtuning']}
+          />
+          <ImageUpload
+            label="Foto do veículo (opcional)"
+            value={vehicle}
+            onChange={(url, asset) => {
+              setVehicle(url)
+              setVehicleAsset(asset)
+            }}
+            maxMB={5}
+            folder="vespucci/services/vehicles"
+            tags={['vespucci-service', 'vespucci-vehicle']}
+          />
+        </div></div>
 
       <div className="card">
         <div className="section-head">

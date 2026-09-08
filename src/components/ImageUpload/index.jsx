@@ -8,7 +8,9 @@ export default function ImageUpload({
   value,
   onChange,
   required = false,
-  maxMB = 5
+  maxMB = 5,
+  folder = '',
+  tags = [],
 }) {
   const { toast } = useUI()
   const [uploading, setUploading] = useState(false)
@@ -29,9 +31,9 @@ export default function ImageUpload({
     try {
       setUploading(true)
 
-      const { url } = await uploadImage(file)
+      const asset = await uploadImage(file, { folder, tags })
 
-      onChange(url)
+      onChange(asset.url, asset)
 
       toast('Imagem enviada com sucesso.', 'success')
     } catch (error) {
@@ -102,7 +104,7 @@ export default function ImageUpload({
           <button
             type="button"
             className="icon-button danger"
-            onClick={() => onChange('')}
+            onClick={() => onChange('', null)}
             aria-label="Remover imagem"
           >
             <X size={18} />
