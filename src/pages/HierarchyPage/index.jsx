@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Crown, Pencil, Save, UserMinus, UserPlus, X } from 'lucide-react'
+import { Crown, Pencil, Save, UserMinus, UserPlus, KeyRound, X } from 'lucide-react'
 import { ROLE_GROUPS, ROLE_ORDER, ROLE_RANK, UNDEFINED_ROLE } from '../../data/seeds'
 import { useAuth } from '../../context/AuthContext'
 import { useUI } from '../../context/UIContext'
 import { subscribeUsers, updateUserRole } from '../../services/firestore'
-import { fireUser } from '../../services/adminApi'
+import { fireUser, resetEmployeePassword } from '../../services/adminApi'
+import Modal from '../../components/Modal'
+import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/password'
 import RoleBadge from '../../components/RoleBadge'
 
 export default function HierarchyPage(){
@@ -13,6 +15,39 @@ export default function HierarchyPage(){
   const [users,setUsers]=useState([])
   const [editing,setEditing]=useState(null)
   const [role,setRole]=useState('')
+  const [passwordTarget,setPasswordTarget]=useState(null)
+  const [newPassword,setNewPassword]=useState('')
+  const [confirmPassword,setConfirmPassword]=useState('')
+  const [passwordBusy,setPasswordBusy]=useState(false)
+  const [passwordError,setPasswordError]=useState('')
+  const canResetPasswords=user?.role==='Dono'||user?.role==='Dev'
+
+  const closePasswordModal=()=>{
+    if(passwordBusy)return
+    setPasswordTarget(null)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordError('')
+  }
+  const submitPassword=async(e)=>{
+    e.preventDefault()
+    if(!passwordTarget||!canResetPasswords||passwordBusy)return
+    if(!validatePassword(newPassword))return setPasswordError(PASSWORD_RULE_TEXT)
+    if(newPassword!==confirmPassword)return setPasswordError('As senhas não coincidem.')
+    setPasswordBusy(true)
+    setPasswordError('')
+    try{
+      await resetEmployeePassword(passwordTarget.id,newPassword)
+      toast(`Senha de ${passwordTarget.name} redefinida com sucesso.`,'success')
+      setPasswordBusy(false)
+      setPasswordTarget(null)
+      setNewPassword('')
+      setConfirmPassword('')
+    }catch(error){
+      setPasswordError(error.message||'Não foi possível redefinir a senha.')
+      setPasswordBusy(false)
+    }
+  }
 
   useEffect(()=>subscribeUsers(setUsers,(error)=>{console.error(error);toast('Não foi possível carregar a hierarquia.','error')}),[toast])
 
@@ -45,12 +80,25 @@ export default function HierarchyPage(){
 
   const assignableRoles=ROLE_ORDER.filter(r=>r!==UNDEFINED_ROLE&&r!=='Dev'&&(user.role==='Dev'||ROLE_RANK[r]<ROLE_RANK[user.role]))
 
-  const personRow=(person,pendingUser=false,displayRole=null)=><div className="person-row" key={person.id}><div className="person-main"><div className="avatar small">{person.photoURL?<img src={person.photoURL} alt=""/>:person.name?.charAt(0)}</div><div><strong>{person.name}</strong><span>ID {person.rpId}{person.contactRP?` · ${pendingUser?'Contato ':''}${person.contactRP}`:''}</span></div></div>{editing===person.id?<div className="role-edit"><select value={role} onChange={e=>setRole(e.target.value)}>{assignableRoles.map(r=><option key={r}>{r}</option>)}</select><button className="icon-button success" onClick={()=>save(person)} title="Salvar cargo"><Save size={17}/></button><button className="icon-button" onClick={()=>setEditing(null)}><X size={17}/></button></div>:pendingUser?<button className="button small" onClick={()=>start(person)}><UserPlus size={16}/> Atribuir cargo</button>:<div className="person-actions"><RoleBadge role={displayRole||person.role}/>{person.id!==user.uid&&canManageRole(person.role)&&<><button className="icon-button" onClick={()=>start(person)} title="Alterar cargo"><Pencil size={16}/></button><button className="icon-button danger" onClick={()=>fire(person)} title="Demitir funcionário"><UserMinus size={16}/></button></>}</div>}</div>
+  const personRow=(person,pendingUser=false,displayRole=null)=><div className="person-row" key={person.id}><div className="person-main"><div className="avatar small">{person.photoURL?<img src={person.photoURL} alt=""/>:person.name?.charAt(0)}</div><div><strong>{person.name}</strong><span>ID {person.rpId}{person.contactRP?` · ${pendingUser?'Contato ':''}${person.contactRP}`:''}</span></div></div>{editing===person.id?<div className="role-edit"><select value={role} onChange={e=>setRole(e.target.value)}>{assignableRoles.map(r=><option key={r}>{r}</option>)}</select><button className="icon-button success" onClick={()=>save(person)} title="Salvar cargo"><Save size={17}/></button>{canResetPasswords&&<button className="icon-button" type="button" onClick={()=>{setPasswordTarget(person);setPasswordError('');setNewPassword('');setConfirmPassword('')}} title="Redefinir senha"><KeyRound size={17}/></button>}<button className="icon-button" onClick={()=>setEditing(null)}><X size={17}/></button></div>:pendingUser?<button className="button small" onClick={()=>start(person)}><UserPlus size={16}/> Atribuir cargo</button>:<div className="person-actions"><RoleBadge role={displayRole||person.role}/>{person.id!==user.uid&&canManageRole(person.role)&&<><button className="icon-button" onClick={()=>start(person)} title="Alterar cargo"><Pencil size={16}/></button><button className="icon-button danger" onClick={()=>fire(person)} title="Demitir funcionário"><UserMinus size={16}/></button></>}</div>}</div>
 
   return <>
     <div className="page-heading"><div><span className="eyebrow">EQUIPE</span><h1>Hierarquia</h1><p>O gerenciamento de cargos segue a hierarquia da organização.</p></div></div>
 
     {isManagerOrAbove&&pending.length>0&&<section className="card pending-staff-card"><div className="section-head"><div><span className="eyebrow">ADMINISTRAÇÃO</span><h3>Cadastros aguardando cargo</h3></div><span className="pending-count">{pending.length}</span></div><p className="muted-copy">Estes usuários têm cadastro ativo, mas não aparecem na hierarquia até receberem um cargo.</p><div className="pending-list">{pending.map(person=>personRow(person,true))}</div></section>}
+
+    <Modal open={Boolean(passwordTarget)} title={`Redefinir senha — ${passwordTarget?.name||''}`} eyebrow="ADMINISTRAÇÃO" onClose={closePasswordModal}>
+      <form onSubmit={submitPassword} className="form-grid">
+        <p className="muted-copy">A nova senha substituirá a senha de acesso do funcionário. Apenas Dono e Dev podem realizar esta ação.</p>
+        <div><label>Nova senha</label><input type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} required/><small className="field-help">{PASSWORD_RULE_TEXT}</small></div>
+        <div><label>Confirmar nova senha</label><input type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} required/></div>
+        {passwordError&&<div className="alert error">{passwordError}</div>}
+        <div style={{display:'flex',justifyContent:'flex-end',gap:10,flexWrap:'wrap'}}>
+          <button type="button" className="button ghost" onClick={closePasswordModal} disabled={passwordBusy}>Cancelar</button>
+          <button type="submit" className="button primary" disabled={passwordBusy}><KeyRound size={16}/>{passwordBusy?'Redefinindo...':'Redefinir senha'}</button>
+        </div>
+      </form>
+    </Modal>
 
     <div className="hierarchy-grid">{ROLE_GROUPS.map(group=>{const people=staff.filter(p=>p.role===group||p.secondaryRole===group);return <section className="role-section" key={group}><div className="role-section-title"><div><Crown size={17}/><strong>{group==='Dono'?'PROPRIETÁRIOS':group.toUpperCase()}</strong></div><span>{people.length}</span></div>{people.length===0?<div className="vacant">• (Vago)</div>:people.map(person=>personRow(person,false,group))}</section>})}</div>
   </>
