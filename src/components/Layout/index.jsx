@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { Calculator, ClipboardList, ContactRound, Gauge, Home, LogOut, Megaphone, Menu, ShieldCheck, Tags, User, Users, X } from 'lucide-react'
 import { useState } from 'react'
-import logo from '../../assets/vespucci-logo.png'
+import logo from '../../assets/harmony-logo.png'
 import { useAuth } from '../../context/AuthContext'
 import { UNDEFINED_ROLE } from '../../data/seeds'
 import RoleBadge from '../RoleBadge'
@@ -35,8 +35,8 @@ export default function Layout() {
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <button className="close-menu" onClick={() => setOpen(false)}><X /></button>
         <div className="brand">
-          <img src={logo} alt="Vespucci Beach Tuners" />
-          <div><strong>Vespucci Beach</strong><span>Tunershop Manager</span></div>
+          <img src={logo} alt="Harmony Custom" />
+          <div><strong>Harmony Custom</strong><span>Oficina • Gestão</span></div>
         </div>
         <nav>
           {links.map(({ to, icon: Icon, label }) => (

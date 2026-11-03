@@ -465,7 +465,7 @@ export default function ClientsPage() {
                   style={{
                     appearance: 'none',
                     WebkitAppearance: 'none',
-                    border: '1px solid #17232d',
+                    border: '1px solid #303030',
                     borderRadius: '10px',
                     padding: '10px 14px',
                     background: 'transparent',
@@ -487,11 +487,11 @@ export default function ClientsPage() {
                   style={{
                     appearance: 'none',
                     WebkitAppearance: 'none',
-                    border: '1px solid #0A93B8',
+                    border: '1px solid #e8e8e8',
                     borderRadius: '10px',
                     padding: '10px 14px',
                     background:
-                      'linear-gradient(135deg, #0A93B8, #087c9b)',
+                      'linear-gradient(135deg, #e8e8e8, #bdbdbd)',
                     color: '#ffffff',
                     fontWeight: 700,
                     lineHeight: 1.2,

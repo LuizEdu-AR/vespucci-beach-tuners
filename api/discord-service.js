@@ -63,7 +63,7 @@ export default async function handler(req, res) {
         { name: '🛠️ Modificações', value: modificationsText || 'Nenhuma modificação informada.', inline: false },
         { name: '💰 Valor total', value: `$ ${money(total)}`, inline: false },
       ],
-      footer: { text: serviceId ? `Vespucci Beach Tuners • Serviço ${serviceId}` : 'Vespucci Beach Tuners • Registro de serviço' },
+      footer: { text: serviceId ? `Harmony Custom • Serviço ${serviceId}` : 'Harmony Custom • Registro de serviço' },
       timestamp: new Date().toISOString(),
     }
 
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: 'Vespucci Beach Tuners',
+        username: 'Harmony Custom',
         avatar_url: process.env.DISCORD_BOT_AVATAR_URL,
         allowed_mentions: { parse: [] },
         embeds,

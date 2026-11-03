@@ -1,4 +1,4 @@
-# Vespucci Beach Tuners Manager — Firebase + Cloudinary
+# Harmony Custom — Firebase + Cloudinary
 
 Versão final do frontend React/Vite, mantendo a identidade visual da versão anterior e substituindo o armazenamento local por serviços compartilhados na nuvem.
 
