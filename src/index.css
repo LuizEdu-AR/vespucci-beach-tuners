@@ -34,3 +34,79 @@ html{font-size:15px}body{color:#f1f1f1;background:radial-gradient(circle at 90% 
 
 /* Contraste para botões principais e componentes ativos */
 .button.primary{background:linear-gradient(135deg,#ffffff,#d8d8d8);border-color:#efefef;color:#101010}.sidebar nav a.active{color:#fff}.role-badge{color:#f0f0f0}.hero-id strong,.summary-total strong{color:#fff}.upload-box{color:#ededed}
+
+
+/* Harmony Custom — seletores da calculadora */
+.quantity-stepper {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #444;
+  border-radius: 11px;
+  background: #111;
+  min-height: 42px;
+}
+.quantity-stepper-button {
+  display: inline-grid;
+  place-items: center;
+  width: 31px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #292929;
+  color: #fff;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.quantity-stepper-button:hover:not(:disabled) { background: #484848; }
+.quantity-stepper-button:disabled { opacity: .32; cursor: not-allowed; }
+.quantity-stepper-input,
+.option-row .quantity-stepper-input {
+  box-sizing: border-box;
+  width: 43px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 3px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.quantity-stepper-input::-webkit-inner-spin-button,
+.quantity-stepper-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.quantity-stepper:focus-within { border-color: #aaa; }
+.tuning-check {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  min-width: 132px;
+  padding: 10px 13px;
+  border: 1px solid #484848;
+  border-radius: 10px;
+  background: #141414;
+  color: #ddd;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.tuning-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.tuning-check-box { display: inline-grid; place-items: center; color: #777; }
+.tuning-check:has(input:checked) { background: #262626; border-color: #aaa; color: #fff; }
+.tuning-check:has(input:checked) .tuning-check-box { color: #fff; }
+.tuning-check:has(input:focus-visible) { outline: 2px solid #fff; outline-offset: 3px; }
+@media (max-width: 480px) {
+  .quantity-stepper-button { width: 30px; }
+  .quantity-stepper-input, .option-row .quantity-stepper-input { width: 35px; }
+  .tuning-check { min-width: 110px; }
+}

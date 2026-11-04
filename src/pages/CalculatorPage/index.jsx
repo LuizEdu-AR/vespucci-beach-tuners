@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, CheckCircle2, LoaderCircle, Plus, Trash2, UserPlus } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, LoaderCircle, Minus, Plus, Trash2, UserPlus } from 'lucide-react'
 import ImageUpload from '../../components/ImageUpload'
 import { PRICE_TABLE } from '../../data/seeds'
 import { useAuth } from '../../context/AuthContext'
@@ -9,6 +9,7 @@ import { sendServiceToDiscord } from '../../services/discordApi'
 
 const money = (v) => Number(v || 0).toLocaleString('pt-BR')
 const emptySelections = () => ({ tuning: {}, fullTuning: false, blindagem: '', items: {}, aesthetics: {}, guinchoKm: 0, dmv: 'none', dmvMaterials: 0 })
+const TOGGLE_TUNING = new Set(['Turbo', 'Hidráulico', 'Hidraulico'])
 const TUNING_ORDER = ['Motor', 'Freios', 'Transmissão', 'Suspensão', 'Hidráulico', 'Turbo']
 
 export default function CalculatorPage() {
@@ -126,7 +127,19 @@ export default function CalculatorPage() {
     }
   }
 
-  const qtyField = (group, key, max) => <input className="qty" type="number" min="0" max={max || 99} value={sel[group][key] || 0} onChange={e => setSel(s => ({ ...s, [group]: { ...s[group], [key]: Math.max(0, Number(e.target.value)) } }))} />
+  const qtyField = (group, key, max) => {
+    const value = Number(sel[group][key] || 0)
+    const limit = Number.isFinite(Number(max)) && Number(max) > 0 ? Number(max) : 99
+    const changeQty = (next) => setSel(s => ({
+      ...s,
+      [group]: { ...s[group], [key]: Math.min(limit, Math.max(0, Math.floor(Number(next) || 0))) },
+    }))
+    return <div className="quantity-stepper" role="group" aria-label={`Quantidade de ${key}`}>
+      <button type="button" className="quantity-stepper-button" aria-label="Diminuir quantidade" disabled={value <= 0} onClick={() => changeQty(value - 1)}><Minus size={15} /></button>
+      <input className="quantity-stepper-input" type="number" inputMode="numeric" min="0" max={limit} step="1" value={value} onChange={e => changeQty(e.target.value)} aria-label="Quantidade" />
+      <button type="button" className="quantity-stepper-button" aria-label="Aumentar quantidade" disabled={value >= limit} onClick={() => changeQty(value + 1)}><Plus size={15} /></button>
+    </div>
+  }
 
   return <>
     <div className="page-heading"><div><span className="eyebrow">ORÇAMENTO</span><h1>Calcular serviço</h1><p>Monte as modificações e finalize para salvar no histórico compartilhado.</p></div><button className="button ghost" onClick={clear}><Trash2 size={17} /> Limpar</button></div>
@@ -178,10 +191,18 @@ export default function CalculatorPage() {
                 <strong>{name}</strong>
                 <span>{levels.map((v, i) => `N${i + 1}: $ ${money(v)}`).join(' · ')}</span>
               </div>
-              <select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}>
-                <option value="">Não aplicar</option>
-                {levels.map((v, i) => <option key={`${name}-${i}`} value={i + 1}>Nível {i + 1} — $ {money(v)}</option>)}
-              </select>
+              {TOGGLE_TUNING.has(name) && levels.length === 1 ? (
+                <label className="tuning-check" title={`Aplicar ${name}`}>
+                  <input type="checkbox" checked={Boolean(sel.tuning[name])} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.checked ? '1' : '' } }))} />
+                  <span className="tuning-check-box" aria-hidden="true"><CheckCircle2 size={16} /></span>
+                  <span>{sel.tuning[name] ? 'Aplicado' : 'Aplicar'}</span>
+                </label>
+              ) : (
+                <select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}>
+                  <option value="">Não aplicar</option>
+                  {levels.map((v, i) => <option key={`${name}-${i}`} value={i + 1}>Nível {i + 1} — $ {money(v)}</option>)}
+                </select>
+              )}
             </div>
           ))}
         </div>
