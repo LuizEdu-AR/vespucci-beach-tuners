@@ -23,7 +23,10 @@
 @media(max-width:600px){.toast-stack{right:16px;top:16px}.form-grid.four{grid-template-columns:1fr}.page-actions{width:100%;flex-wrap:wrap}.modal-actions{flex-direction:column-reverse}.modal-actions .button{width:100%}.confirm-card{grid-template-columns:1fr}.price-list>div{align-items:flex-start;flex-direction:column}.price-edit-row{justify-content:flex-start}.price-input{max-width:none}}
 
 /* Firebase/Cloudinary async states */
-.app-loading{min-height:100vh;display:grid;place-items:center;background:#071015;color:#dce9ed;font-weight:700;letter-spacing:.04em}
+.app-loading{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#080808;color:#fff;font-weight:600;letter-spacing:.025em}
+.app-loading-spinner{color:#fff;animation:app-loading-spin .9s linear infinite}
+@keyframes app-loading-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.app-loading-spinner{animation-duration:2.5s}}
 .spin{animation:vbt-spin .9s linear infinite}
 @keyframes vbt-spin{to{transform:rotate(360deg)}}
 .upload-box.uploading{opacity:.72;cursor:wait}
@@ -110,3 +113,15 @@ html{font-size:15px}body{color:#f1f1f1;background:radial-gradient(circle at 90% 
   .quantity-stepper-input, .option-row .quantity-stepper-input { width: 35px; }
   .tuning-check { min-width: 110px; }
 }
+
+/* Seleção direta dos níveis de tuning */
+.tuning-levels{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px;max-width:760px}
+.tuning-level-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:45px;min-width:90px;padding:7px 11px;border:1px solid #424242;border-radius:9px;background:#111;color:#ddd;cursor:pointer;font:inherit;transition:background .15s,border-color .15s,color .15s}
+.tuning-level-button strong{font-size:12px;font-weight:650;white-space:nowrap}
+.tuning-level-button small{font-size:10px;color:#aaa;white-space:nowrap}
+.tuning-level-button:hover{background:#242424;border-color:#888}
+.tuning-level-button.selected{background:#f3f3f3;color:#111;border-color:#fff}
+.tuning-level-button.selected small{color:#444}
+.tuning-level-button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media(max-width:900px){.option-row:has(.tuning-levels){align-items:stretch;flex-direction:column;gap:12px}.tuning-levels{max-width:none;justify-content:flex-start}}
+@media(max-width:480px){.tuning-level-button{flex:1 1 90px}}

@@ -9,6 +9,7 @@ import { sendServiceToDiscord } from '../../services/discordApi'
 
 const money = (v) => Number(v || 0).toLocaleString('pt-BR')
 const emptySelections = () => ({ tuning: {}, fullTuning: false, blindagem: '', items: {}, aesthetics: {}, guinchoKm: 0, dmv: 'none', dmvMaterials: 0 })
+const BUTTON_TUNING = new Set(['Motor', 'Freios', 'Freio', 'Transmissão', 'Suspensão'])
 const TOGGLE_TUNING = new Set(['Turbo', 'Hidráulico', 'Hidraulico'])
 const TUNING_ORDER = ['Motor', 'Freios', 'Transmissão', 'Suspensão', 'Hidráulico', 'Turbo']
 
@@ -197,6 +198,16 @@ export default function CalculatorPage() {
                   <span className="tuning-check-box" aria-hidden="true"><CheckCircle2 size={16} /></span>
                   <span>{sel.tuning[name] ? 'Aplicado' : 'Aplicar'}</span>
                 </label>
+              ) : BUTTON_TUNING.has(name) ? (
+                <div className="tuning-levels" role="group" aria-label={`Níveis de ${name}`}>
+                  <button type="button" className={`tuning-level-button${!sel.tuning[name] ? ' selected' : ''}`} aria-pressed={!sel.tuning[name]} onClick={() => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: '' } }))}>Não aplicar</button>
+                  {levels.map((price, i) => {
+                    const selected = String(sel.tuning[name] || '') === String(i + 1)
+                    return <button type="button" key={`${name}-${i}`} className={`tuning-level-button${selected ? ' selected' : ''}`} aria-pressed={selected} onClick={() => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: String(i + 1) } }))}>
+                      <strong>Nível {i + 1}</strong><small>$ {money(price)}</small>
+                    </button>
+                  })}
+                </div>
               ) : (
                 <select value={sel.tuning[name] || ''} onChange={e => setSel(s => ({ ...s, fullTuning: false, tuning: { ...s.tuning, [name]: e.target.value } }))}>
                   <option value="">Não aplicar</option>
