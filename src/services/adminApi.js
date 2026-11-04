@@ -35,3 +35,17 @@ export async function resetEmployeePassword(uid, password) {
   if (!response.ok) throw new Error(data.error || 'Não foi possível redefinir a senha.')
   return data
 }
+
+export async function updateMyOperationalRole(secondaryRole) {
+  const currentUser = auth.currentUser
+  if (!currentUser) throw new Error('Sua sessão expirou. Entre novamente.')
+  const token = await currentUser.getIdToken()
+  const response = await fetch('/api/update-operational-role', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ secondaryRole }),
+  })
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(data.error || 'Não foi possível alterar o cargo operacional.')
+  return data
+}

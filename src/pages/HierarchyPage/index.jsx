@@ -4,7 +4,7 @@ import { ROLE_GROUPS, ROLE_ORDER, ROLE_RANK, UNDEFINED_ROLE } from '../../data/s
 import { useAuth } from '../../context/AuthContext'
 import { useUI } from '../../context/UIContext'
 import { subscribeUsers, updateUserRole } from '../../services/firestore'
-import { fireUser, resetEmployeePassword } from '../../services/adminApi'
+import { fireUser, resetEmployeePassword, updateMyOperationalRole } from '../../services/adminApi'
 import Modal from '../../components/Modal'
 import { validatePassword, PASSWORD_RULE_TEXT } from '../../utils/password'
 import RoleBadge from '../../components/RoleBadge'
@@ -53,10 +53,21 @@ export default function HierarchyPage(){
 
   const pending=useMemo(()=>users.filter(u=>(u.role||UNDEFINED_ROLE)===UNDEFINED_ROLE),[users])
   const staff=useMemo(()=>users.filter(u=>(u.role||UNDEFINED_ROLE)!==UNDEFINED_ROLE),[users])
-  const start=(person)=>{setEditing(person.id);setRole(person.role===UNDEFINED_ROLE?'Jovem Aprendiz':person.role)}
+  const isMyDevProfile=(person)=>user?.role==='Dev'&&person.id===user.uid&&person.role==='Dev'
+  const operationalRoles=ROLE_ORDER.filter(r=>['Jovem Aprendiz','Estagiário','Mecânico','Mecânico Sênior','Supervisor','Gerente'].includes(r))
+  const start=(person)=>{setEditing(person.id);setRole(isMyDevProfile(person)?(person.secondaryRole||'Mecânico'):(person.role===UNDEFINED_ROLE?'Jovem Aprendiz':person.role))}
 
   const save=async(person)=>{
     if(!isManagerOrAbove)return
+    if(isMyDevProfile(person)){
+      if(!operationalRoles.includes(role))return toast('Cargo operacional inválido.','warning')
+      try{
+        await updateMyOperationalRole(role)
+        setEditing(null)
+        toast(`Seu cargo operacional agora é ${role}. O cargo Dev foi preservado.`,'success')
+      }catch(error){console.error(error);toast(error.message||'Não foi possível atualizar seu cargo operacional.','error')}
+      return
+    }
     if(person.id===user.uid)return toast('Você não pode alterar o próprio cargo.','warning')
     if(user.role!=='Dev' && ROLE_RANK[role]>=ROLE_RANK[user.role]) return toast('Você só pode atribuir cargos abaixo do seu próprio nível.','warning')
     try{
@@ -80,7 +91,7 @@ export default function HierarchyPage(){
 
   const assignableRoles=ROLE_ORDER.filter(r=>r!==UNDEFINED_ROLE&&r!=='Dev'&&(user.role==='Dev'||ROLE_RANK[r]<ROLE_RANK[user.role]))
 
-  const personRow=(person,pendingUser=false,displayRole=null)=><div className="person-row" key={person.id}><div className="person-main"><div className="avatar small">{person.photoURL?<img src={person.photoURL} alt=""/>:person.name?.charAt(0)}</div><div><strong>{person.name}</strong><span>ID {person.rpId}{person.contactRP?` · ${pendingUser?'Contato ':''}${person.contactRP}`:''}</span></div></div>{editing===person.id?<div className="role-edit"><select value={role} onChange={e=>setRole(e.target.value)}>{assignableRoles.map(r=><option key={r}>{r}</option>)}</select><button className="icon-button success" onClick={()=>save(person)} title="Salvar cargo"><Save size={17}/></button>{canResetPasswords&&<button className="icon-button" type="button" onClick={()=>{setPasswordTarget(person);setPasswordError('');setNewPassword('');setConfirmPassword('')}} title="Redefinir senha"><KeyRound size={17}/></button>}<button className="icon-button" onClick={()=>setEditing(null)}><X size={17}/></button></div>:pendingUser?<button className="button small" onClick={()=>start(person)}><UserPlus size={16}/> Atribuir cargo</button>:<div className="person-actions"><RoleBadge role={displayRole||person.role}/>{person.id!==user.uid&&canManageRole(person.role)&&<><button className="icon-button" onClick={()=>start(person)} title="Alterar cargo"><Pencil size={16}/></button><button className="icon-button danger" onClick={()=>fire(person)} title="Demitir funcionário"><UserMinus size={16}/></button></>}</div>}</div>
+  const personRow=(person,pendingUser=false,displayRole=null)=><div className="person-row" key={person.id}><div className="person-main"><div className="avatar small">{person.photoURL?<img src={person.photoURL} alt=""/>:person.name?.charAt(0)}</div><div><strong>{person.name}</strong><span>ID {person.rpId}{person.contactRP?` · ${pendingUser?'Contato ':''}${person.contactRP}`:''}</span></div></div>{editing===person.id?<div className="role-edit"><select value={role} onChange={e=>setRole(e.target.value)}>{(isMyDevProfile(person)?operationalRoles:assignableRoles).map(r=><option key={r}>{r}</option>)}</select><button className="icon-button success" onClick={()=>save(person)} title="Salvar cargo"><Save size={17}/></button>{canResetPasswords&&<button className="icon-button" type="button" onClick={()=>{setPasswordTarget(person);setPasswordError('');setNewPassword('');setConfirmPassword('')}} title="Redefinir senha"><KeyRound size={17}/></button>}<button className="icon-button" onClick={()=>setEditing(null)}><X size={17}/></button></div>:pendingUser?<button className="button small" onClick={()=>start(person)}><UserPlus size={16}/> Atribuir cargo</button>:<div className="person-actions"><RoleBadge role={displayRole||person.role}/>{(isMyDevProfile(person)||(person.id!==user.uid&&canManageRole(person.role)))&&<><button className="icon-button" onClick={()=>start(person)} title="Alterar cargo"><Pencil size={16}/></button>{!isMyDevProfile(person)&&<button className="icon-button danger" onClick={()=>fire(person)} title="Demitir funcionário"><UserMinus size={16}/></button>}</>}</div>}</div>
 
   return <>
     <div className="page-heading"><div><span className="eyebrow">EQUIPE</span><h1>Hierarquia</h1><p>O gerenciamento de cargos segue a hierarquia da organização.</p></div></div>
@@ -100,6 +111,6 @@ export default function HierarchyPage(){
       </form>
     </Modal>
 
-    <div className="hierarchy-grid">{ROLE_GROUPS.map(group=>{const people=staff.filter(p=>p.role===group||p.secondaryRole===group);return <section className="role-section" key={group}><div className="role-section-title"><div><Crown size={17}/><strong>{group==='Dono'?'PROPRIETÁRIOS':group.toUpperCase()}</strong></div><span>{people.length}</span></div>{people.length===0?<div className="vacant">• (Vago)</div>:people.map(person=>personRow(person,false,group))}</section>})}</div>
+    <div className="hierarchy-grid">{ROLE_GROUPS.map(group=>{const people=staff.filter(p=>p.role==='Dev'?(p.secondaryRole===group):(p.role===group));return <section className="role-section" key={group}><div className="role-section-title"><div><Crown size={17}/><strong>{group==='Dono'?'PROPRIETÁRIOS':group.toUpperCase()}</strong></div><span>{people.length}</span></div>{people.length===0?<div className="vacant">• (Vago)</div>:people.map(person=>personRow(person,false,group))}</section>})}</div>
   </>
 }
